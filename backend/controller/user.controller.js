@@ -54,29 +54,51 @@ export const signup = asyncHandler(async (req, res) => {
 
 /* ================== LOGIN USER ================== */
 export const login = asyncHandler(async (req, res) => {
-    const { email, password } = req.body;
+  const { email, contact, password } = req.body;
 
-    // Find user including password
-    const user = await User.findOne({ email }).select("+password");
-    if (!user) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
+  if (!password) {
+    return res.status(400).json({ message: "Password is required" });
+  }
 
-    // Compare password
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
+  let user;
 
-    // Generate JWT token
-    getJwtToken(res, user._id);
+  // If email is provided → Customer login
+  if (email) {
+    user = await User.findOne({ email, role: "Customer" }).select("+password");
+  }
 
-    res.json({
-      message: "Login successful",
-      userId: user._id,
-      role: user.role,
+  // If contact (phone number) is provided → Vender login
+  else if (contact) {
+    user = await User.findOne({ contact, role: "Vender" }).select("+password");
+  }
+
+  else {
+    return res.status(400).json({
+      message: "Provide email (Customer) or contact (Vender)",
     });
+  }
+
+  if (!user) {
+    return res.status(400).json({ message: "Invalid credentials" });
+  }
+
+  // Compare password
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) {
+    return res.status(400).json({ message: "Invalid credentials" });
+  }
+
+  // Generate JWT
+  getJwtToken(res, user._id);
+
+  res.status(200).json({
+    success: true,
+    message: "Login successful",
+    userId: user._id,
+    role: user.role,
+  });
 });
+
 
 export const logout = asyncHandler(async (req, res) => {
     // Note: req.id was used in original code, but usually it's req._id or req.user.id
