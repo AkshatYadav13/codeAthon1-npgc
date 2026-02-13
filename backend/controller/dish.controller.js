@@ -1,121 +1,118 @@
 import { Dish } from "../models/dish.model.js";
 import { Vender } from "../models/vender.model.js";
+import { uploadImageOnCloundinary } from "../cloudinary.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
 /* ================== ADD DISH ================== */
-export const addDish = async (req, res) => {
-  try {
-    const { name, price, imageUrl, foodType } = req.body;
+export const addDish = asyncHandler(async (req, res, next) => {
+  const { name, price, description, category } = req.body;
+  const file = req.file;
 
-    const dish = await Dish.create({
-      vender: req.user.userId,
-      name,
-      price,
-      imageUrl,
-      foodType,
-    });
-
-    res.status(201).json({ message: "Dish added", dish });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+  if (!name || !price || !description || !category) {
+    return res.status(400).json({ success: false, message: "All fields except image are required" });
   }
-};
+
+  // Find the vendor profile for this user
+  const vender = await Vender.findOne({ user: req._id });
+  if (!vender) {
+    return res.status(404).json({ success: false, message: "Vendor profile not found" });
+  }
+
+  let imageUrl = "";
+  if (file) {
+    imageUrl = await uploadImageOnCloundinary(file);
+  }
+
+  const dish = await Dish.create({
+    vender: vender._id, // Use Vender ID, not User ID
+    name,
+    description,
+    price,
+    imageUrl: imageUrl || "https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=500&auto=format&fit=crop&q=60",
+    category,
+  });
+
+  res.status(201).json({ success: true, message: "Dish added successfully", dish });
+});
 
 /* ================== UPDATE DISH ================== */
-export const updateDish = async (req, res) => {
-  try {
-    const { dishId } = req.params;
-    const updates = req.body;
+export const updateDish = asyncHandler(async (req, res, next) => {
+  const { dishId } = req.params;
+  const updates = req.body;
 
-    const dish = await Dish.findOneAndUpdate(
-      { _id: dishId, vender: req.user.userId },
-      updates,
-      { new: true }
-    );
+  const vender = await Vender.findOne({ user: req._id });
+  if (!vender) return res.status(404).json({ message: "Vendor profile not found" });
 
-    if (!dish) return res.status(404).json({ message: "Dish not found" });
+  const dish = await Dish.findOneAndUpdate(
+    { _id: dishId, vender: vender._id },
+    updates,
+    { new: true }
+  );
 
-    res.json({ message: "Dish updated", dish });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+  if (!dish) return res.status(404).json({ message: "Dish not found" });
+
+  res.json({ message: "Dish updated", dish });
+});
 
 /* ================== DELETE DISH ================== */
-export const deleteDish = async (req, res) => {
-  try {
-    const { dishId } = req.params;
+export const deleteDish = asyncHandler(async (req, res, next) => {
+  const { dishId } = req.params;
 
-    const dish = await Dish.findOneAndDelete({ _id: dishId, vender: req.user.userId });
-    if (!dish) return res.status(404).json({ message: "Dish not found" });
+  const vender = await Vender.findOne({ user: req._id });
+  if (!vender) return res.status(404).json({ message: "Vendor profile not found" });
 
-    res.json({ message: "Dish deleted" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+  const dish = await Dish.findOneAndDelete({ _id: dishId, vender: vender._id });
+  if (!dish) return res.status(404).json({ message: "Dish not found" });
+
+  res.json({ message: "Dish deleted" });
+});
 
 /* ================== GET MY DISHES (VENDOR) ================== */
-export const getMyDishes = async (req, res) => {
-  try {
-    const dishes = await Dish.find({ vender: req.user.userId }).sort({ createdAt: -1 }).lean();
-    res.json(dishes);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+export const getMyDishes = asyncHandler(async (req, res, next) => {
+  const vender = await Vender.findOne({ user: req._id });
+  if (!vender) {
+    return res.status(404).json({ success: false, message: "Vendor profile not found" });
   }
-};
+
+  const dishes = await Dish.find({ vender: vender._id }).sort({ createdAt: -1 }).lean();
+  res.json({ success: true, dishes });
+});
 
 /* ================== GET ALL DISHES (CUSTOMER) ================== */
-export const getAllDishes = async (req, res) => {
-  try {
-    const dishes = await Dish.find({}).populate("vender", "user").lean();
-    res.json(dishes);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+export const getAllDishes = asyncHandler(async (req, res, next) => {
+  const dishes = await Dish.find({}).populate("vender", "user").lean();
+  res.json(dishes);
+});
 
 /* ================== GET DISH BY ID ================== */
-export const getDishById = async (req, res) => {
-  try {
-    const { dishId } = req.params;
-    const dish = await Dish.findById(dishId).populate("vender", "user").lean();
+export const getDishById = asyncHandler(async (req, res, next) => {
+  const { dishId } = req.params;
+  const dish = await Dish.findById(dishId).populate("vender", "user").lean();
 
-    if (!dish) return res.status(404).json({ message: "Dish not found" });
-    res.json(dish);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+  if (!dish) return res.status(404).json({ message: "Dish not found" });
+  res.json(dish);
+});
 
 /* ================== GET DISHES BY TYPE ================== */
-export const getDishesByType = async (req, res) => {
-  try {
-    const { type } = req.query; // e.g., Vegetables, Fruits, Both
-    const dishes = await Dish.find({ foodType: type }).lean();
-    res.json(dishes);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+export const getDishesByType = asyncHandler(async (req, res, next) => {
+  const { type } = req.query; // e.g., Vegetables, Fruits, Both
+  const dishes = await Dish.find({ foodType: type }).lean();
+  res.json(dishes);
+});
 
 /* ================== SEARCH DISHES ================== */
-export const searchDishes = async (req, res) => {
-  try {
-    const { query } = req.query;
-    const dishes = await Dish.find({
-      name: { $regex: query, $options: "i" },
-    }).lean();
+export const searchDishes = asyncHandler(async (req, res, next) => {
+  const { query } = req.query;
+  const dishes = await Dish.find({
+    name: { $regex: query, $options: "i" },
+  }).lean();
 
-    res.json(dishes);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+  res.json(dishes);
+});
+
+/* ================== GET DISHES BY VENDOR ================== */
+export const getDishesByVendor = asyncHandler(async (req, res, next) => {
+  const { venderId } = req.params;
+  const dishes = await Dish.find({ vender: venderId }).lean();
+  res.status(200).json({ success: true, dishes });
+});

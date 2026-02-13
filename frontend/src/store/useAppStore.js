@@ -8,10 +8,21 @@ export const useAppStore = create()(
     (set) => ({
       theme: "light",
       user: null,
+      vendorDishes: [],
+      vendors: [],
+      selectedVendor: null,
+      selectedVendorDishes: [],
+      userLocation: {
+        address: "",
+        lat: null,
+        lng: null
+      },
       loading: {
         page: false,
         login: false,
         signUp: false,
+        vendors: false,
+        selectedVendor: false,
       },
 
       setTheme: (theme) => {
@@ -37,6 +48,15 @@ export const useAppStore = create()(
       // Utility to update loading dynamically
       setLoading: (key, value) =>
         set((state) => ({ loading: { ...state.loading, [key]: value } })),
+
+      setLocation: (address, lat, lng) =>
+        set(() => ({
+          userLocation: {
+            address,
+            lat,
+            lng
+          }
+        })),
 
       // ----------------------------
       // LOGIN
@@ -105,11 +125,110 @@ export const useAppStore = create()(
           setLoading("signUp", false);
         }
       },
+      // ----------------------------
+      // PROFILE
+      // ----------------------------
+      getProfile: async () => {
+        try {
+          const res = await fetch(`${API_END_POINT}/user/profile`, {
+            method: "GET",
+            credentials: "include",
+          });
+          const data = await res.json();
+          if (data.success) {
+            set({ user: data.user });
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      },
+
+      updateProfile: async (profileData) => {
+        const setLoading = useAppStore.getState().setLoading;
+        setLoading("profileUpdate", true);
+
+        try {
+          const res = await fetch(`${API_END_POINT}/user/profile`, {
+            method: "PUT",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(profileData),
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            toast.error(data.message || "Update failed");
+            return;
+          }
+
+          if (data.success) {
+            set({ user: data.user });
+            toast.success(data.message || "Profile updated successfully");
+          }
+        } catch (error) {
+          console.error(error);
+          toast.error("Unexpected error occurred");
+        } finally {
+          setLoading("profileUpdate", false);
+        }
+      },
+      // ----------------------------
+      // DISHES / ITEMS
+      // ----------------------------
+      getVendorDishes: async () => {
+        try {
+          const res = await fetch(`${API_END_POINT}/dish/my-dishes`, {
+            method: "GET",
+            credentials: "include",
+          });
+          const data = await res.json();
+          if (data.success) {
+            set({ vendorDishes: data.dishes });
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      },
+
+      addDish: async (formData) => {
+        const setLoading = useAppStore.getState().setLoading;
+        setLoading("addDish", true);
+
+        try {
+          const res = await fetch(`${API_END_POINT}/dish`, {
+            method: "POST",
+            credentials: "include",
+            // No content-type header for FormData, browser handles it
+            body: formData,
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            toast.error(data.message || "Failed to add item");
+            return;
+          }
+
+          if (data.success) {
+            const { vendorDishes } = useAppStore.getState();
+            set({ vendorDishes: [data.dish, ...vendorDishes] });
+            toast.success(data.message || "Item listed successfully");
+            return true;
+          }
+        } catch (error) {
+          console.error(error);
+          toast.error("Unexpected error occurred");
+        } finally {
+          setLoading("addDish", false);
+        }
+        return false;
+      },
 
       logout: async () => {
         try {
           const res = await fetch(`${API_END_POINT}/user/logout`, {
-            method: "GET", // Or POST depending on route definition, checking user.route.js... 
+            method: "GET",
             credentials: "include",
           });
           const data = await res.json();
@@ -121,6 +240,77 @@ export const useAppStore = create()(
           console.error(error);
           toast.error("Failed to logout");
         }
+      },
+
+      getAllVendors: async () => {
+        set((state) => ({ loading: { ...state.loading, vendors: true } }));
+        try {
+          const response = await fetch(`${API_END_POINT}/vender/all`);
+          const data = await response.json();
+          if (data.success) {
+            set({ vendors: data.vendors });
+          }
+        } catch (error) {
+          console.error("Error fetching vendors:", error);
+        } finally {
+          set((state) => ({ loading: { ...state.loading, vendors: false } }));
+        }
+      },
+
+      getVendorById: async (id) => {
+        set((state) => ({ loading: { ...state.loading, selectedVendor: true } }));
+        try {
+          const response = await fetch(`${API_END_POINT}/vender/${id}`);
+          const data = await response.json();
+          if (data.success) {
+            set({ selectedVendor: data.vender });
+          }
+        } catch (error) {
+          console.error("Error fetching vendor:", error);
+        } finally {
+          set((state) => ({ loading: { ...state.loading, selectedVendor: false } }));
+        }
+      },
+
+      getDishesByVendor: async (id) => {
+        try {
+          const response = await fetch(`${API_END_POINT}/dish/vender/${id}`);
+          const data = await response.json();
+          if (data.success) {
+            set({ selectedVendorDishes: data.dishes });
+          }
+        } catch (error) {
+          console.error("Error fetching dishes:", error);
+        }
+      },
+
+      createOrder: async (orderData) => {
+        const setLoading = useAppStore.getState().setLoading;
+        setLoading("createOrder", true);
+        try {
+          const response = await fetch(`${API_END_POINT}/vender/order`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(orderData),
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            toast.success("Order placed successfully!");
+            // Optional: Clear cart local storage or state
+            localStorage.removeItem("cart");
+            return data.order;
+          } else {
+            toast.error(data.message || "Failed to place order");
+          }
+        } catch (error) {
+          console.error("Error creating order:", error);
+          toast.error("An error occurred while placing your order");
+        } finally {
+          setLoading("createOrder", false);
+        }
+        return null;
       },
     }),
     {

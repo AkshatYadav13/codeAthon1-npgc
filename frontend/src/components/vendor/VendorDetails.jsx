@@ -3,92 +3,77 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Star, MapPin, ArrowLeft, Plus, Minus, ShoppingCart } from 'lucide-react';
-
-// Mock Data for Vendors (Ideally this would come from an API/Store based on ID)
-const vendorData = {
-    1: {
-        name: "Ram's Fresh Fruits",
-        type: "Fruit",
-        rating: 4.8,
-        location: "Sector 15, Noida",
-        image: "https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
-        products: [
-            { id: 101, name: "Apple (Kashmir)", price: 120, unit: "kg", image: "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=500&auto=format&fit=crop&q=60" },
-            { id: 102, name: "Banana (Robusta)", price: 40, unit: "dozen", image: "https://images.unsplash.com/photo-1571771896612-61871f0ee6bd?w=500&auto=format&fit=crop&q=60" },
-            { id: 103, name: "Orange (Nagpur)", price: 60, unit: "kg", image: "https://images.unsplash.com/photo-1547514701-42782101795e?w=500&auto=format&fit=crop&q=60" },
-            { id: 104, name: "Pomegranate", price: 150, unit: "kg", image: "https://images.unsplash.com/photo-1615485925763-867862f809d3?w=500&auto=format&fit=crop&q=60" },
-        ]
-    },
-    // Fallback data for any other ID for demo purposes
-    "demo": {
-        name: "Sita's Green Vegetables",
-        type: "Vegetable",
-        rating: 4.5,
-        location: "Sector 18, Noida",
-        image: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&auto=format&fit=crop&q=60",
-        products: [
-            { id: 201, name: "Potato (Pahadi)", price: 30, unit: "kg", image: "https://images.unsplash.com/photo-1518977676644-7186062f3bd0?w=500&auto=format&fit=crop&q=60" },
-            { id: 202, name: "Onion (Nasik)", price: 45, unit: "kg", image: "https://images.unsplash.com/photo-1508747703725-7197b963ad71?w=500&auto=format&fit=crop&q=60" },
-            { id: 203, name: "Tomato (Hybrid)", price: 25, unit: "kg", image: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=500&auto=format&fit=crop&q=60" },
-            { id: 204, name: "Spinach (Fresh)", price: 20, unit: "bunch", image: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=500&auto=format&fit=crop&q=60" },
-        ]
-    }
-};
+import { Star, MapPin, ArrowLeft, Plus, Minus, ShoppingCart, Loader2 } from 'lucide-react';
+import { useAppStore } from '@/store/useAppStore';
 
 const VendorDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const {
+        selectedVendor,
+        selectedVendorDishes,
+        getVendorById,
+        getDishesByVendor,
+        loading
+    } = useAppStore();
 
-    // Use specific vendor data if exists, else fallback to demo data
-    const vendor = vendorData[id] || vendorData["demo"];
-
-    // State to manage cart/quantities
+    // State to manage local UI quantities for the cart
     const [quantities, setQuantities] = useState({});
 
     useEffect(() => {
-        // Load existing cart from local storage
-        const savedCart = localStorage.getItem('cart');
+        getVendorById(id);
+        getDishesByVendor(id);
+    }, [id, getVendorById, getDishesByVendor]);
+
+    useEffect(() => {
+        // Load existing cart from local storage to sync quantities
+        const savedCart = JSON.parse(localStorage.getItem('cart') || '{}');
         const savedVendorId = localStorage.getItem('currentVendor');
 
-        if (savedCart && savedVendorId) {
-            // If switching vendors, might want to warn user. For now, we will just load if same vendor, else clear.
-            if (savedVendorId === id) {
-                const parsedCart = JSON.parse(savedCart);
-                const qtyMap = {};
-                Object.values(parsedCart).forEach(item => {
-                    qtyMap[item.id] = item.quantity;
-                });
-                setQuantities(qtyMap);
-            }
+        if (savedVendorId === id) {
+            const qtyMap = {};
+            Object.values(savedCart).forEach(item => {
+                qtyMap[item._id] = item.quantity;
+            });
+            setQuantities(qtyMap);
+        } else {
+            setQuantities({});
         }
-    }, [id]);
+    }, [id, selectedVendorDishes]);
 
-    const updateQuantity = (productId, delta) => {
+    const updateQuantity = (dish, delta) => {
+        const dishId = dish._id;
         setQuantities(prev => {
-            const current = prev[productId] || 0;
+            const current = prev[dishId] || 0;
             const updated = Math.max(0, current + delta);
 
-            const newQuantities = { ...prev, [productId]: updated };
+            const newQuantities = { ...prev, [dishId]: updated };
 
             // Update Local Storage
             const currentCart = JSON.parse(localStorage.getItem('cart') || '{}');
             const currentVendorId = localStorage.getItem('currentVendor');
 
-            // Reset cart if switching vendors and adding items
             let cartToSave = { ...currentCart };
+
+            // Check if switching vendors
             if (currentVendorId && currentVendorId !== id && Object.keys(currentCart).length > 0) {
                 if (!window.confirm("Start a new cart? Adding items from this vendor will clear your previous cart.")) {
-                    return prev; // Cancel action
+                    return prev;
                 }
-                cartToSave = {}; // Clear cart
+                cartToSave = {};
+                // Reset local quantities if we clear the cart
+                Object.keys(newQuantities).forEach(k => { if (k !== dishId) newQuantities[k] = 0; });
             }
 
-            const product = vendor.products.find(p => p.id === productId);
             if (updated > 0) {
-                cartToSave[productId] = { ...product, quantity: updated, vendorId: id };
+                cartToSave[dishId] = {
+                    ...dish,
+                    id: dishId, // For consistency with any existing logic expecting 'id'
+                    quantity: updated,
+                    vendorId: id
+                };
             } else {
-                delete cartToSave[productId];
+                delete cartToSave[dishId];
             }
 
             localStorage.setItem('cart', JSON.stringify(cartToSave));
@@ -100,8 +85,24 @@ const VendorDetails = () => {
 
     const totalItems = Object.values(quantities).reduce((a, b) => a + b, 0);
 
+    if (loading.selectedVendor && !selectedVendor) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-green-50">
+                <Loader2 className="h-12 w-12 text-green-600 animate-spin mb-4" />
+                <p className="text-green-800 font-medium">Loading menu...</p>
+            </div>
+        );
+    }
+
+    if (!selectedVendor) return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-green-50">
+            <p className="text-xl text-green-800">Vendor not found.</p>
+            <Button className="mt-4 bg-green-600" onClick={() => navigate('/vendors')}>Return to Marketplace</Button>
+        </div>
+    );
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 p-4 md:p-6 pb-24">
+        <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 p-4 md:p-6 pb-24 pt-24">
             <div className="max-w-4xl mx-auto space-y-6">
 
                 {/* Navigation & Vendor Header */}
@@ -112,24 +113,28 @@ const VendorDetails = () => {
 
                     <div className="bg-white rounded-2xl p-6 shadow-sm border border-green-100 flex flex-col md:flex-row gap-6 items-start md:items-center">
                         <div className="w-full md:w-32 h-32 rounded-xl overflow-hidden shrink-0">
-                            <img src={vendor.image} alt={vendor.name} className="w-full h-full object-cover" />
+                            <img
+                                src={selectedVendor.imageUrl || "https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&auto=format&fit=crop&q=60"}
+                                alt={selectedVendor.user?.fullName}
+                                className="w-full h-full object-cover"
+                            />
                         </div>
                         <div className="flex-1 space-y-2">
                             <div className="flex justify-between items-start">
                                 <div>
-                                    <h1 className="text-2xl font-bold text-green-900">{vendor.name}</h1>
+                                    <h1 className="text-2xl font-bold text-green-900">{selectedVendor.user?.fullName}</h1>
                                     <div className="flex items-center gap-2 text-green-700 mt-1">
                                         <MapPin className="h-4 w-4" />
-                                        <span className="text-sm">{vendor.location}</span>
+                                        <span className="text-sm">{selectedVendor.user?.location?.address || "Location not specified"}</span>
                                     </div>
                                 </div>
                                 <div className="flex flex-col items-end gap-2">
                                     <Badge variant="secondary" className="bg-green-100 text-green-800">
-                                        {vendor.type}
+                                        {selectedVendor.foodType}
                                     </Badge>
                                     <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-lg border border-yellow-100">
                                         <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                                        <span className="font-bold text-sm text-yellow-700">{vendor.rating}</span>
+                                        <span className="font-bold text-sm text-yellow-700">{selectedVendor.avgRating?.toFixed(1) || "5.0"}</span>
                                     </div>
                                 </div>
                             </div>
@@ -139,26 +144,26 @@ const VendorDetails = () => {
 
                 {/* Product List */}
                 <div>
-                    <h2 className="text-xl font-bold text-green-900 mb-4">Fresh Products</h2>
+                    <h2 className="text-xl font-bold text-green-900 mb-4 font-outfit">Fresh Products from this Stall</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {vendor.products.map((product) => (
-                            <Card key={product.id} className="overflow-hidden border-green-100 hover:shadow-md transition-shadow">
+                        {selectedVendorDishes.map((dish) => (
+                            <Card key={dish._id} className="overflow-hidden border-green-100 hover:shadow-md transition-shadow bg-white/90">
                                 <CardContent className="p-0 flex h-28">
                                     <div className="w-28 h-28 shrink-0">
-                                        <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                                        <img src={dish.imageUrl} alt={dish.name} className="w-full h-full object-cover" />
                                     </div>
                                     <div className="flex-1 p-3 flex flex-col justify-between">
                                         <div>
-                                            <h3 className="font-semibold text-green-900 line-clamp-1">{product.name}</h3>
-                                            <p className="text-green-600 text-sm">₹{product.price} / {product.unit}</p>
+                                            <h3 className="font-semibold text-green-900 line-clamp-1">{dish.name}</h3>
+                                            <p className="text-green-600 text-sm">₹{dish.price} / {dish.category}</p>
                                         </div>
                                         <div className="flex justify-between items-center mt-2">
-                                            {(quantities[product.id] || 0) === 0 ? (
+                                            {(quantities[dish._id] || 0) === 0 ? (
                                                 <Button
                                                     size="sm"
                                                     variant="outline"
                                                     className="ml-auto border-green-600 text-green-600 hover:bg-green-50"
-                                                    onClick={() => updateQuantity(product.id, 1)}
+                                                    onClick={() => updateQuantity(dish, 1)}
                                                 >
                                                     Add +
                                                 </Button>
@@ -166,14 +171,14 @@ const VendorDetails = () => {
                                                 <div className="flex items-center gap-3 bg-green-50 rounded-lg p-1 ml-auto border border-green-200">
                                                     <button
                                                         className="w-6 h-6 flex items-center justify-center rounded bg-white text-green-700 shadow-sm hover:bg-green-100"
-                                                        onClick={() => updateQuantity(product.id, -1)}
+                                                        onClick={() => updateQuantity(dish, -1)}
                                                     >
                                                         <Minus className="h-3 w-3" />
                                                     </button>
-                                                    <span className="text-sm font-bold text-green-900 w-4 text-center">{quantities[product.id]}</span>
+                                                    <span className="text-sm font-bold text-green-900 w-4 text-center">{quantities[dish._id]}</span>
                                                     <button
                                                         className="w-6 h-6 flex items-center justify-center rounded bg-green-600 text-white shadow-sm hover:bg-green-700"
-                                                        onClick={() => updateQuantity(product.id, 1)}
+                                                        onClick={() => updateQuantity(dish, 1)}
                                                     >
                                                         <Plus className="h-3 w-3" />
                                                     </button>
@@ -185,6 +190,12 @@ const VendorDetails = () => {
                             </Card>
                         ))}
                     </div>
+
+                    {selectedVendorDishes.length === 0 && (loading.selectedVendor === false) && (
+                        <div className="text-center py-20 bg-white/50 rounded-2xl border-2 border-dashed border-green-200">
+                            <p className="text-xl text-green-800 font-medium">This vendor has no items listed at the moment.</p>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -192,7 +203,7 @@ const VendorDetails = () => {
             {totalItems > 0 && (
                 <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-sm px-4">
                     <Button
-                        className="w-full bg-green-900 hover:bg-green-800 text-white shadow-xl py-6 rounded-xl flex justify-between items-center text-lg"
+                        className="w-full bg-green-900 hover:bg-green-800 text-white shadow-xl py-6 rounded-xl flex justify-between items-center text-lg animate-in fade-in slide-in-from-bottom-5"
                         onClick={() => navigate('/cart')}
                     >
                         <div className="flex items-center gap-2">

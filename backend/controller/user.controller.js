@@ -15,7 +15,7 @@ const JWT_EXPIRES_IN = "7d"; // token expires in 7 days
 
 /* ================== REGISTER USER ================== */
 export const signup = asyncHandler(async (req, res) => {
-  const { fullName, email, password, contact, role = "Customer", location } = req.body;
+  const { fullName, email, password, contact, role = "Customer", location, foodType, imageUrl } = req.body;
 
   if (!fullName || !password || !contact) {
     return res.status(400).json({ message: "Full name, password, and contact (phone) are required" });
@@ -49,7 +49,11 @@ export const signup = asyncHandler(async (req, res) => {
   if (role === "Customer") {
     await Customer.create({ userId: user._id });
   } else if (role === "Vender") {
-    await Vender.create({ user: user._id });
+    await Vender.create({
+      user: user._id,
+      foodType: foodType || "Vegetables",
+      imageUrl: imageUrl || ""
+    });
   }
 
   res.status(201).json({

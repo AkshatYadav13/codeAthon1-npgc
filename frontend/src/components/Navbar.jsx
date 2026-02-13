@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Sun, Moon, Menu, User, ClipboardList, Package, LogOut } from "lucide-react";
+import { Sun, Moon, Menu, User, ClipboardList, Package, LogOut, Home, Store, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useAppStore } from "@/store/useAppStore";
@@ -21,7 +21,7 @@ const Navbar = () => {
 
         {/* Logo */}
         <Link to="/" className="text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-          Fresh Card
+          Fresh Cart
         </Link>
       </div>
 
@@ -105,7 +105,7 @@ const MobileSidebar = () => {
         <SheetHeader>
           <SheetTitle>
             <Link to="/" className="text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-              Fresh Card
+              Fresh Cart
             </Link>
           </SheetTitle>
         </SheetHeader>
@@ -116,6 +116,7 @@ const MobileSidebar = () => {
             to="/"
             className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-green-900 dark:text-green-50 font-medium"
           >
+            <Home className="w-5 h-5 text-green-700" />
             Home
           </Link>
 
@@ -126,12 +127,14 @@ const MobileSidebar = () => {
                 to="/vendors"
                 className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-green-900 dark:text-green-50 font-medium"
               >
+                <Store className="w-5 h-5 text-green-700" />
                 Vendors
               </Link>
               <Link
                 to="/cart"
                 className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-green-900 dark:text-green-50 font-medium"
               >
+                <ShoppingCart className="w-5 h-5 text-green-700" />
                 Cart
               </Link>
             </>

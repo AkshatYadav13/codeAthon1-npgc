@@ -18,7 +18,9 @@ const SignUp = () => {
     phoneNumber: "",
     password: "",
     confirmPassword: "",
-    role: "Customer"
+    role: "Customer",
+    foodType: "Vegetables",
+    imageUrl: ""
   });
 
   const changeEventHandler = (e) => {
@@ -52,7 +54,9 @@ const SignUp = () => {
       fullName: input.fullname,
       contact: input.phoneNumber,
       password: input.password,
-      role: input.role
+      role: input.role,
+      foodType: input.role === "Vender" ? input.foodType : undefined,
+      imageUrl: input.role === "Vender" ? input.imageUrl : undefined
     });
 
     if (useAppStore.getState().user) {
@@ -105,6 +109,35 @@ const SignUp = () => {
                 </button>
               </div>
             </div>
+
+            {/* Vendor Specific Fields */}
+            {input.role === "Vender" && (
+              <div className="p-4 bg-emerald-50/50 rounded-xl border border-emerald-100 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="space-y-2">
+                  <Label className="text-emerald-800">What do you sell?</Label>
+                  <select
+                    name="foodType"
+                    value={input.foodType}
+                    onChange={changeEventHandler}
+                    className="w-full p-2.5 bg-white border border-emerald-200 rounded-lg text-emerald-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                  >
+                    <option value="Vegetables">Vegetables</option>
+                    <option value="Fruits">Fruits</option>
+                    <option value="Both">Both (Vegetables & Fruits)</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-emerald-800">Store Image URL (Optional)</Label>
+                  <Input
+                    name="imageUrl"
+                    placeholder="https://example.com/store.jpg"
+                    value={input.imageUrl}
+                    onChange={changeEventHandler}
+                    className="border-emerald-200 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="fullname" className="text-green-800">Full Name</Label>

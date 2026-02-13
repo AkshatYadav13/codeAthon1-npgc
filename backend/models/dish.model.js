@@ -1,9 +1,9 @@
 import mongoose from "mongoose";
 
 const dishSchema = new mongoose.Schema({
-    venderId: {
+    vender: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Restaurant',
+        ref: 'Vender',
         required: true
     },
     name: {
@@ -46,35 +46,32 @@ const dishSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
-    tags:{
-        type:[String],
-        default:[]
+    tags: {
+        type: [String],
+        default: []
     },
     totalUnitsSold: {
         type: Number,
-        default:0
+        default: 0
     },
     orderCount: {
         type: Number,
-        default:0
+        default: 0
     },
 
 }, { timestamps: true });
 
 // Indexes for Dish
-dishSchema.index({ venderId: 1 });
+dishSchema.index({ vender: 1 });
 dishSchema.index({ category: 1 });
 dishSchema.index({ avgRating: -1 });
 dishSchema.index({ price: 1 });
 
-dishSchema.pre("save",function(next){
-    if(this.isModified("ratingTotal") || this.isModified("ratingCount")){
-        this.avgRating = this.ratingCount > 0 ? Math.floor((this.ratingTotal/this.ratingCount)*10)/10 : 0
+dishSchema.pre("save", async function () {
+    if (this.isModified("ratingTotal") || this.isModified("ratingCount")) {
+        this.avgRating = this.ratingCount > 0 ? Math.floor((this.ratingTotal / this.ratingCount) * 10) / 10 : 0
     }
-    next();
 })
 
 
 export const Dish = mongoose.model('Dish', dishSchema);
-
-

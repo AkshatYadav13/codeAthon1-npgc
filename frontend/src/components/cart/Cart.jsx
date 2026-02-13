@@ -2,7 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Trash2, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Trash2, CheckCircle, Loader2, MapPin, Navigation } from 'lucide-react';
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAppStore } from '@/store/useAppStore';
+import { toast } from 'sonner';
 import {
     Dialog,
     DialogContent,
@@ -18,13 +22,30 @@ const Cart = () => {
     const [vendorId, setVendorId] = useState(null);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [orderPlaced, setOrderPlaced] = useState(false);
+    const [deliveryLocation, setDeliveryLocation] = useState({
+        address: '',
+        latitude: 0,
+        longitude: 0
+    });
+    const { createOrder, user, userLocation, setLocation } = useAppStore();
+    const [isPlacing, setIsPlacing] = useState(false);
+    const [isLocating, setIsLocating] = useState(false);
 
     useEffect(() => {
         const savedCart = localStorage.getItem('cart');
         const savedVendorId = localStorage.getItem('currentVendor');
         if (savedCart) setCart(JSON.parse(savedCart));
         if (savedVendorId) setVendorId(savedVendorId);
-    }, []);
+
+        // Pre-fill with store location if available
+        if (userLocation?.address) {
+            setDeliveryLocation({
+                address: userLocation.address || '',
+                latitude: userLocation.lat || 0,
+                longitude: userLocation.lng || 0
+            });
+        }
+    }, [user, userLocation]);
 
     const updateQuantity = (productId, delta) => {
         setCart(prev => {
@@ -59,15 +80,58 @@ const Cart = () => {
     const cartItems = Object.values(cart);
     const totalAmount = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-    const handleConfirmOrder = () => {
-        // Here you would typically send data to backend
-        setOrderPlaced(true);
-        setTimeout(() => {
-            // Clear cart and redirect
-            localStorage.removeItem('cart');
-            localStorage.removeItem('currentVendor');
-            navigate('/');
-        }, 2000);
+    const handleConfirmOrder = async () => {
+        if (!user) {
+            toast.error("Please login to place an order");
+            navigate('/login');
+            return;
+        }
+
+        setIsPlacing(true);
+        try {
+            // Validate location
+            if (!deliveryLocation.address.trim()) {
+                toast.error("Please provide a delivery address");
+                setIsPlacing(false);
+                return;
+            }
+
+            if (deliveryLocation.latitude === 0 || deliveryLocation.longitude === 0) {
+                if (!window.confirm("Coordinates are not set. This might affect delivery time estimates. Proceed anyway?")) {
+                    setIsPlacing(false);
+                    return;
+                }
+            }
+
+            const formattedItems = cartItems.map(item => ({
+                dishId: item._id, // Ensure we use _id for the backend
+                name: item.name,
+                imageUrl: item.image,
+                price: item.price,
+                quantity: item.quantity
+            }));
+
+            const success = await createOrder({
+                venderId: vendorId,
+                cartItems: formattedItems,
+                dropLocation: deliveryLocation
+            });
+
+            if (success) {
+                setOrderPlaced(true);
+                // Clear local state cart
+                setCart({});
+                setVendorId(null);
+
+                setTimeout(() => {
+                    navigate('/');
+                }, 3000);
+            }
+        } catch (error) {
+            console.error("Order placement failed:", error);
+        } finally {
+            setIsPlacing(false);
+        }
     };
 
     if (orderPlaced) {
@@ -102,6 +166,70 @@ const Cart = () => {
                 </Button>
 
                 <h1 className="text-3xl font-bold text-green-900">Review Order</h1>
+
+                {/* Location Selection */}
+                <Card className="border-green-100 bg-white shadow-sm overflow-hidden">
+                    <CardHeader className="bg-green-50/50 pb-3">
+                        <CardTitle className="text-lg flex items-center gap-2 text-green-900">
+                            <MapPin className="h-5 w-5 text-green-600" />
+                            Delivery Location
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="address">Delivery Address</Label>
+                            <Input
+                                id="address"
+                                placeholder="Enter your full address"
+                                value={deliveryLocation.address}
+                                onChange={(e) => {
+                                    const newAddress = e.target.value;
+                                    setDeliveryLocation({ ...deliveryLocation, address: newAddress });
+                                    setLocation(newAddress, deliveryLocation.latitude, deliveryLocation.longitude);
+                                }}
+                                className="border-green-100 focus-visible:ring-green-500"
+                            />
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className="flex-1 space-y-2">
+                                <Label className="text-xs text-gray-500">Coordinates</Label>
+                                <div className="text-xs font-mono bg-stone-50 p-2 rounded border border-stone-100 text-gray-600">
+                                    {deliveryLocation.latitude.toFixed(4)}, {deliveryLocation.longitude.toFixed(4)}
+                                </div>
+                            </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="mt-6 border-green-600 text-green-600 hover:bg-green-50"
+                                onClick={() => {
+                                    setIsLocating(true);
+                                    navigator.geolocation.getCurrentPosition(
+                                        (pos) => {
+                                            const { latitude, longitude } = pos.coords;
+                                            setDeliveryLocation(prev => ({
+                                                ...prev,
+                                                latitude,
+                                                longitude
+                                            }));
+                                            setLocation(deliveryLocation.address, latitude, longitude);
+                                            setIsLocating(false);
+                                            toast.success("Location captured!");
+                                        },
+                                        () => {
+                                            toast.error("Failed to get location");
+                                            setIsLocating(false);
+                                        }
+                                    );
+                                }}
+                                disabled={isLocating}
+                            >
+                                {isLocating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Navigation className="h-4 w-4 mr-1" />}
+                                Detect Location
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
 
                 <div className="space-y-4">
                     {cartItems.map((item) => (
@@ -177,8 +305,13 @@ const Cart = () => {
                         <Button type="button" variant="secondary" onClick={() => setIsConfirmOpen(false)}>
                             Cancel
                         </Button>
-                        <Button type="button" className="bg-green-600 hover:bg-green-700 text-white" onClick={handleConfirmOrder}>
-                            Confirm Order
+                        <Button
+                            type="button"
+                            className="bg-green-600 hover:bg-green-700 text-white min-w-[120px]"
+                            onClick={handleConfirmOrder}
+                            disabled={isPlacing}
+                        >
+                            {isPlacing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Order"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

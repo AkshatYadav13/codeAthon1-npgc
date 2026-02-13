@@ -9,11 +9,19 @@ import {
   updateOrderStatus,
   calculateEarnings,
   toggleAvailability,
-  getNearbyVenders
+  getNearbyVenders,
+  getAllVenders,
+  getVenderById,
+  createOrder
 } from "../controller/vender.controller.js";
 import { isAuthenticated } from "../middlewares.js";
 
 const router = express.Router();
+
+// Public routes
+router.get("/all", getAllVenders);
+router.get("/:id", getVenderById);
+router.post("/order", isAuthenticated, createOrder);
 
 // Vendor profile
 router.get("/profile", isAuthenticated, getVenderProfile);

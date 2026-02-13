@@ -1,47 +1,38 @@
 import jwt from 'jsonwebtoken';
+import { asyncHandler } from './utils/asyncHandler.js';
 
-export const isAuthenticated = async(req, res, next)=>{
-    try {
-        const {token} = req.cookies
+export const isAuthenticated = asyncHandler(async (req, res, next) => {
+    const { token } = req.cookies
 
-        if(!token){
-            res.status(400).json({
-                message:'User not authenticated',
-                success:false
-            })   
-            return
-        }
-
-        const decode = jwt.verify(token,process.env.JWT_SECRET_KEY)
-
-        if(!decode){
-            res.status(400).json({
-                message:'User not authenticated',
-                success:false
-            })   
-            return
-        }
-
-        req._id = decode.userId
-        next()
-        
-    } catch (error) {
-        console.log(error)
-        res.status(500).json({
-            message:'Interal server error',
-            success:false
-        })   
+    if (!token) {
+        return res.status(401).json({
+            message: 'User not authenticated',
+            success: false
+        })
     }
-}
+
+    const decode = jwt.verify(token, process.env.JWT_SECRET_KEY)
+
+    if (!decode) {
+        return res.status(401).json({
+            message: 'Invalid token',
+            success: false
+        })
+    }
+
+    req._id = decode.userId
+    req.user = { userId: decode.userId }
+    next()
+})
 
 
 import multer from "multer";
 
 
 const upload = multer({
-    storage:multer.memoryStorage(),
-    limits:{
-        fileSize:5*1024*1024 //5mb
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: 5 * 1024 * 1024 //5mb
     }
 })
 

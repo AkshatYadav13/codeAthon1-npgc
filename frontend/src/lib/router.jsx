@@ -10,6 +10,7 @@ import AppLayout from "../components/AppLayout";
 import Home from "../components/Home";
 import Orders from "../components/orders/Orders";
 import VendorItems from "../components/vendor/VendorItems";
+import Profile from "../components/Profile";
 
 /* ================== AUTH GUARD ================== */
 const AuthenticatedUser = () => {
@@ -89,6 +90,10 @@ const router = createBrowserRouter([
       {
         path: "vendor/items",
         element: <VendorItems />,
+      },
+      {
+        path: "profile",
+        element: <Profile />,
       },
     ],
   },
