@@ -13,12 +13,14 @@ export const useAppStore = create()(
         login: false,
         signUp: false,
       },
+      vender:null,
+      setVenderActiveOrders: (venderActiveOrders) => set({ venderActiveOrders }),
+      
       userLocation:{
         address:"",
         lat:null,
         lng:null
       },
-
     setLocation: (address, lat, lng) =>
       set(() => ({
         userLocation: {

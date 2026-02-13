@@ -14,8 +14,8 @@ export const useUserLocation = () => {
       async (position) => {
         const latitude = position.coords.latitude;
         const longitude = position.coords.longitude;
-
-        if (locationData) {
+        
+        if (latitude && longitude) {
           setLocation(
             "",
             latitude,

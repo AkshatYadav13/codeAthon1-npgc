@@ -159,6 +159,18 @@ const MobileSidebar = () => {
 
           <hr className="border-green-100 dark:border-green-900 my-2" />
 
+          {
+            user.role === "Vender" &&(
+              <>
+              <GovPolicies />
+              <Link
+              to={'https://huggingface.co/spaces/Pushpeaks7/vender-analytics'}
+              >Prediction Analytics</Link>
+              
+              </>
+            )
+          }
+
           {/* Profile and Auth */}
           {user ? (
             <>

@@ -235,3 +235,67 @@ export const getNearbyVenders = async (req, res) => {
   }
 };
 
+import asyncHandler from "express-async-handler";
+import { User } from "../models/user.model.js";
+
+export const updateVenderLiveLocation = asyncHandler(async (req, res) => {
+  const userId = req.user._id; // from auth middleware
+  const { latitude, longitude } = req.body;
+
+  /* ================= VALIDATION ================= */
+
+  if (latitude === undefined || longitude === undefined) {
+    return res.status(400).json({
+      success: false,
+      message: "Latitude and Longitude are required",
+    });
+  }
+
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+
+  if (isNaN(lat) || isNaN(lng)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid coordinates",
+    });
+  }
+
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    return res.status(400).json({
+      success: false,
+      message: "Coordinates out of range",
+    });
+  }
+
+  /* ================= CHECK ROLE ================= */
+
+  const user = await User.findById(userId);
+
+  if (!user || user.role !== "Vender") {
+    return res.status(403).json({
+      success: false,
+      message: "Only vendor can update live location",
+    });
+  }
+
+  /* ================= UPDATE LOCATION ================= */
+
+  user.location = {
+    address: user.location?.address || "", // keep existing address
+    latitude: lat,
+    longitude: lng,
+    geo: {
+      type: "Point",
+      coordinates: [lng, lat], // IMPORTANT [lng, lat]
+    },
+  };
+
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Live location updated",
+    location: user.location,
+  });
+});
