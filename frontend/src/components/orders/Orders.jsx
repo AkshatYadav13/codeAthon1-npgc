@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Package, Clock, CheckCircle, ChevronRight } from 'lucide-react';
+import { LiveTrackingMap } from '../LiveTrackingMap';
 
 const mockOrders = [
     {
@@ -13,7 +14,13 @@ const mockOrders = [
             { name: "Organic Spinach", quantity: 1, price: 20 }
         ],
         total: 260,
-        vendor: "Ram's Fresh Fruits"
+        vendor: "Ram's Fresh Fruits",
+        deliveryDetails: {
+            pickup: { address: "Hazratganj Main Market, Lucknow", latitude: 26.8467, longitude: 80.9462 },
+            drop: { address: "Vibhav Khand, Gomti Nagar, Lucknow", latitude: 26.8500, longitude: 81.0111 },
+            distanceKm: 6.5,
+            estimatedTimeMin: 25
+        }
     },
     {
         id: "ORD-5678",
@@ -23,7 +30,13 @@ const mockOrders = [
             { name: "Nagpur Orange", quantity: 3, price: 180 }
         ],
         total: 180,
-        vendor: "Sita's Green Vegetables"
+        vendor: "Sita's Green Vegetables",
+        deliveryDetails: {
+            pickup: { address: "Aliganj Sector H, Lucknow", latitude: 26.8920, longitude: 80.9360 },
+            drop: { address: "Munshi Pulia, Indira Nagar, Lucknow", latitude: 26.8844, longitude: 80.9916 },
+            distanceKm: 5.8,
+            estimatedTimeMin: 20
+        }
     }
 ];
 
@@ -88,7 +101,7 @@ const OrderCard = ({ order }) => (
             </div>
         </CardHeader>
         <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-4">
                 <div className="divide-y divide-green-50">
                     {order.items.map((item, i) => (
                         <div key={i} className="py-2 flex justify-between text-sm">
@@ -100,6 +113,34 @@ const OrderCard = ({ order }) => (
                 <div className="pt-2 border-t border-green-100 flex justify-between items-center">
                     <span className="font-bold text-green-900 text-lg">Total</span>
                     <span className="font-bold text-green-900 text-lg">₹{order.total}</span>
+                </div>
+
+                {/* Delivery Info */}
+                <div className="grid grid-cols-2 gap-4 text-xs bg-white/50 p-3 rounded-lg border border-green-50">
+                    <div>
+                        <p className="text-green-600 font-semibold">Distance</p>
+                        <p className="text-green-900">{order.deliveryDetails.distanceKm} km</p>
+                    </div>
+                    <div>
+                        <p className="text-green-600 font-semibold">Est. Delivery</p>
+                        <p className="text-green-900">{order.deliveryDetails.estimatedTimeMin} mins</p>
+                    </div>
+                </div>
+
+                {/* Live Tracking Map */}
+                <div className="overflow-hidden rounded-xl border border-green-100">
+                    <LiveTrackingMap
+                        agentData={{
+                            lat: order.deliveryDetails.pickup.latitude,
+                            lng: order.deliveryDetails.pickup.longitude,
+                            label: "Vendor Pickup"
+                        }}
+                        destinationData={{
+                            lat: order.deliveryDetails.drop.latitude,
+                            lng: order.deliveryDetails.drop.longitude,
+                            label: "Your Drop Location"
+                        }}
+                    />
                 </div>
             </div>
         </CardContent>

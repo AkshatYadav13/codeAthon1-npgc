@@ -14,7 +14,6 @@ dns.setServers(["1.1.1.1"]);
 
 connectDB();
 
-
 const app = express();
 const PORT = process.env.PORT || 5000;
 

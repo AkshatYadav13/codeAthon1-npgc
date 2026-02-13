@@ -31,6 +31,7 @@ const userSchema = new mongoose.Schema(
     },
     location: {
       type: locationSchema,
+      required: false,
     },
   },
   { timestamps: true }

@@ -12,7 +12,8 @@ import {
   getNearbyVenders,
   getAllVenders,
   getVenderById,
-  createOrder
+  createOrder,
+  updateVenderLiveLocation
 } from "../controller/vender.controller.js";
 import { isAuthenticated } from "../middlewares.js";
 
@@ -39,6 +40,7 @@ router.put("/orders/:orderId/status", isAuthenticated, updateOrderStatus);
 // Earnings & Availability
 router.get("/earnings", isAuthenticated, calculateEarnings);
 router.put("/toggle-availability", isAuthenticated, toggleAvailability);
-router.put("/get/near/vender", isAuthenticated, getNearbyVenders);
+router.get("/near/vender", isAuthenticated, getNearbyVenders);
+router.patch("/update-location", isAuthenticated, updateVenderLiveLocation);
 
 export default router;
