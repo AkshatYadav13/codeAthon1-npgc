@@ -1,12 +1,17 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Sun, Moon, Menu, User, ClipboardList, Package } from "lucide-react";
+import { Sun, Moon, Menu, User, ClipboardList, Package, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useAppStore } from "@/store/useAppStore";
 
 const Navbar = () => {
-  const { theme, setTheme } = useAppStore();
+  const { theme, setTheme, user, logout } = useAppStore();
+
+  const getInitials = (name) => {
+    if (!name) return "U";
+    return name.charAt(0).toUpperCase();
+  };
 
   return (
     <div className="sticky top-0 z-30 w-full flex justify-between items-center px-4 py-3 border-b bg-white/80 backdrop-blur-md dark:bg-gray-900/80 border-green-100 dark:border-green-900 shadow-sm">
@@ -26,13 +31,31 @@ const Navbar = () => {
           <ThemeToggleButton theme={theme} setTheme={setTheme} />
         </div>
 
-        {/* Profile Icon */}
-        <Link
-          to="/profile"
-          className="h-9 w-9 flex items-center justify-center rounded-full bg-green-600 text-white font-bold text-lg hover:bg-green-700 transition-colors shadow-sm"
-        >
-          Z
-        </Link>
+        {/* Profile and Logout */}
+        {user ? (
+          <div className="flex items-center gap-3">
+            <Link
+              to="/profile"
+              className="h-9 w-9 flex items-center justify-center rounded-full bg-green-600 text-white font-bold text-lg hover:bg-green-700 transition-colors shadow-sm"
+            >
+              {getInitials(user.fullName)}
+            </Link>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+              onClick={logout}
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
+        ) : (
+          <Link to="/login">
+            <Button variant="outline" className="border-green-600 text-green-700 hover:bg-green-50">
+              Login
+            </Button>
+          </Link>
+        )}
       </div>
     </div>
   );
@@ -65,7 +88,13 @@ const ThemeToggleButton = ({ theme, setTheme }) => {
 // --------------------------
 // Mobile Sidebar (Menu)
 // --------------------------
-const MobileSidebar = ({ theme, setTheme }) => {
+const MobileSidebar = () => {
+  const { theme, setTheme, user, logout } = useAppStore();
+
+  const getInitials = (name) => {
+    if (!name) return "U";
+    return name.charAt(0).toUpperCase();
+  };
   return (
     <Sheet>
       <SheetTrigger className="p-2 rounded-md hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
@@ -89,45 +118,76 @@ const MobileSidebar = ({ theme, setTheme }) => {
           >
             Home
           </Link>
-          <Link
-            to="/vendors"
-            className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-green-900 dark:text-green-50 font-medium"
-          >
-            Vendors
-          </Link>
-          <Link
-            to="/cart"
-            className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-green-900 dark:text-green-50 font-medium"
-          >
-            Cart
-          </Link>
-          <Link
-            to="/orders"
-            className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-green-900 dark:text-green-50 font-medium"
-          >
-            <ClipboardList className="w-5 h-5 text-green-700" />
-            Orders
-          </Link>
-          <Link
-            to="/vendor/items"
-            className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-green-900 dark:text-green-50 font-medium"
-          >
-            <Package className="w-5 h-5 text-green-700" />
-            Manage Items
-          </Link>
+
+          {/* Role-Based Links */}
+          {user?.role === "Customer" && (
+            <>
+              <Link
+                to="/vendors"
+                className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-green-900 dark:text-green-50 font-medium"
+              >
+                Vendors
+              </Link>
+              <Link
+                to="/cart"
+                className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-green-900 dark:text-green-50 font-medium"
+              >
+                Cart
+              </Link>
+            </>
+          )}
+
+          {user?.role === "Vender" && (
+            <Link
+              to="/vendor/items"
+              className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-green-900 dark:text-green-50 font-medium"
+            >
+              <Package className="w-5 h-5 text-green-700" />
+              Manage Items
+            </Link>
+          )}
+
+          {user && (
+            <Link
+              to="/orders"
+              className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-green-900 dark:text-green-50 font-medium"
+            >
+              <ClipboardList className="w-5 h-5 text-green-700" />
+              Orders
+            </Link>
+          )}
 
           <hr className="border-green-100 dark:border-green-900 my-2" />
 
-          {/* Profile Link */}
-          <Link
-            to="/profile"
-            className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
-          >
-            <div className="h-8 w-8 flex items-center justify-center rounded-full bg-green-600 text-white font-bold">
-              Z
-            </div>
-            <span className="font-medium text-green-900 dark:text-green-50">Profile</span>
-          </Link>
+          {/* Profile and Auth */}
+          {user ? (
+            <>
+              <Link
+                to="/profile"
+                className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+              >
+                <div className="h-8 w-8 flex items-center justify-center rounded-full bg-green-600 text-white font-bold">
+                  {getInitials(user.fullName)}
+                </div>
+                <span className="font-medium text-green-900 dark:text-green-50">Profile</span>
+              </Link>
+              <button
+                onClick={logout}
+                className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors w-full text-left text-red-600"
+              >
+                <LogOut className="w-5 h-5" />
+                <span className="font-medium">Logout</span>
+              </button>
+            </>
+          ) : (
+            <Link
+              to="/login"
+              className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+            >
+              <User className="w-5 h-5 text-green-700" />
+              <span className="font-medium text-green-900 dark:text-green-50">Login</span>
+            </Link>
+          )}
 
           {/* Theme Toggle (Mobile) */}
           <button

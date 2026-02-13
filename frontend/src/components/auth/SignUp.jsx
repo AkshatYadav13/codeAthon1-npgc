@@ -4,14 +4,21 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Leaf, Phone, User, Lock, ArrowRight } from "lucide-react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
+import { useAppStore } from "@/store/useAppStore"
+import { toast } from "sonner"
 
 const SignUp = () => {
+  const navigate = useNavigate();
+  const signUp = useAppStore((state) => state.signUp);
+  const loading = useAppStore((state) => state.loading.signUp);
+
   const [input, setInput] = useState({
     fullname: "",
     phoneNumber: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
+    role: "Customer"
   });
 
   const changeEventHandler = (e) => {
@@ -20,8 +27,37 @@ const SignUp = () => {
 
   const submitHandler = async (e) => {
     e.preventDefault();
-    console.log(input);
-    // Add your signup logic here
+
+    if (!input.fullname || !input.phoneNumber || !input.password) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    if (!/^\d{10}$/.test(input.phoneNumber)) {
+      toast.error("Phone number must be exactly 10 digits");
+      return;
+    }
+
+    if (input.password.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
+    if (input.password !== input.confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+
+    await signUp({
+      fullName: input.fullname,
+      contact: input.phoneNumber,
+      password: input.password,
+      role: input.role
+    });
+
+    if (useAppStore.getState().user) {
+      navigate("/");
+    }
   }
 
   return (
@@ -41,6 +77,35 @@ const SignUp = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={submitHandler} className="space-y-4">
+            {/* Role Selection */}
+            <div className="space-y-2 mb-4">
+              <Label className="text-green-800">I want to register as a:</Label>
+              <div className="grid grid-cols-2 gap-4 p-1 bg-green-50 rounded-xl border border-green-100">
+                <button
+                  type="button"
+                  onClick={() => setInput({ ...input, role: "Customer" })}
+                  className={`flex items-center justify-center gap-2 py-2.5 rounded-lg transition-all ${input.role === "Customer"
+                    ? "bg-white text-green-700 shadow-sm font-bold"
+                    : "text-green-600 hover:bg-green-100/50"
+                    }`}
+                >
+                  <User className="w-4 h-4" />
+                  Customer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInput({ ...input, role: "Vender" })}
+                  className={`flex items-center justify-center gap-2 py-2.5 rounded-lg transition-all ${input.role === "Vender"
+                    ? "bg-white text-green-700 shadow-sm font-bold"
+                    : "text-green-600 hover:bg-green-100/50"
+                    }`}
+                >
+                  <Leaf className="w-4 h-4" />
+                  Vendor
+                </button>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="fullname" className="text-green-800">Full Name</Label>
               <div className="relative">
@@ -109,9 +174,9 @@ const SignUp = () => {
               </div>
             </div>
 
-            <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-6 mt-4 group">
-              Sign Up
-              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+            <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-6 mt-4 group" disabled={loading}>
+              {loading ? "Creating Account..." : "Sign Up"}
+              {!loading && <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />}
             </Button>
           </form>
         </CardContent>

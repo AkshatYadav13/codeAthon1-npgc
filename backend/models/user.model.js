@@ -11,8 +11,6 @@ const userSchema = new mongoose.Schema(
     },
     email: {
       type: String,
-      unique: true,
-      required: true,
       trim: true,
     },
     password: {
@@ -23,17 +21,16 @@ const userSchema = new mongoose.Schema(
     contact: {
       type: String,
       required: true,
-      match: /^[6-9]\d{9}$/,
+      match: /^\d{10}$/,
       unique: true,
     },
     role: {
       type: String,
       enum: USER_ROLES,
-      required: true,
+      default: "Customer",
     },
     location: {
       type: locationSchema,
-      required: true,
     },
   },
   { timestamps: true }

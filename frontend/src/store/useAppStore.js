@@ -61,7 +61,7 @@ export const useAppStore = create()(
           }
 
           if (data.success) {
-            set({ user: data.userWithOutPassword });
+            set({ user: data.user });
             toast.success(data.message || "Login successful");
           }
         } catch (error) {
@@ -95,7 +95,7 @@ export const useAppStore = create()(
           }
 
           if (data.success) {
-            set({ user: data.userWithOutPassword });
+            set({ user: data.user });
             toast.success(data.message || "SignUp successful");
           }
         } catch (error) {
@@ -106,7 +106,22 @@ export const useAppStore = create()(
         }
       },
 
-      logout: () => set({ user: null }),
+      logout: async () => {
+        try {
+          const res = await fetch(`${API_END_POINT}/user/logout`, {
+            method: "GET", // Or POST depending on route definition, checking user.route.js... 
+            credentials: "include",
+          });
+          const data = await res.json();
+          if (data.success) {
+            set({ user: null });
+            toast.success(data.message || "Logged out successfully");
+          }
+        } catch (error) {
+          console.error(error);
+          toast.error("Failed to logout");
+        }
+      },
     }),
     {
       name: "app-store",

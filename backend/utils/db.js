@@ -2,14 +2,14 @@ import mongoose from "mongoose";
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI
-, {
-  family: 4
-}
-    );
-    console.log("Database connected");
+    console.log("Attempting to connect to MongoDB...");
+    await mongoose.connect(process.env.MONGODB_URI, {
+      family: 4
+    });
+    console.log("✅ MongoDB connected successfully");
   } catch (error) {
-    console.log("MongoDB connection error:", error);
+    console.error("❌ MongoDB connection error:", error);
+    process.exit(1); // Exit process on connection failure
   }
 };
 

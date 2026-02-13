@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Leaf, Mail, Lock, ArrowRight, UserCircle, Store } from "lucide-react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 const Login = () => {
   const login = useAppStore((state) => state.login);
@@ -13,10 +14,21 @@ const Login = () => {
 
   const [identifier, setIdentifier] = useState(""); // Email or Phone
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("customer"); // 'customer' or 'vendor'
+  const [role, setRole] = useState("Customer"); // 'Customer' or 'Vender'
 
   const handleLogin = async (e) => {
     e.preventDefault();
+
+    if (!identifier || !password) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
     await login({ identifier, password, role });
   };
 
@@ -41,10 +53,10 @@ const Login = () => {
             <div className="grid grid-cols-2 gap-4 p-1 bg-green-50 rounded-xl border border-green-100">
               <button
                 type="button"
-                onClick={() => setRole("customer")}
-                className={`flex items-center justify-center gap-2 py-2.5 rounded-lg transition-all ${role === "customer"
-                    ? "bg-white text-green-700 shadow-sm font-bold"
-                    : "text-green-600/60 hover:text-green-600 font-medium"
+                onClick={() => setRole("Customer")}
+                className={`flex items-center justify-center gap-2 py-2.5 rounded-lg transition-all ${role === "Customer"
+                  ? "bg-white text-green-700 shadow-sm font-bold"
+                  : "text-green-600/60 hover:text-green-600 font-medium"
                   }`}
               >
                 <UserCircle className="w-4 h-4" />
@@ -52,10 +64,10 @@ const Login = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setRole("vendor")}
-                className={`flex items-center justify-center gap-2 py-2.5 rounded-lg transition-all ${role === "vendor"
-                    ? "bg-white text-green-700 shadow-sm font-bold"
-                    : "text-green-600/60 hover:text-green-600 font-medium"
+                onClick={() => setRole("Vender")}
+                className={`flex items-center justify-center gap-2 py-2.5 rounded-lg transition-all ${role === "Vender"
+                  ? "bg-white text-green-700 shadow-sm font-bold"
+                  : "text-green-600/60 hover:text-green-600 font-medium"
                   }`}
               >
                 <Store className="w-4 h-4" />
