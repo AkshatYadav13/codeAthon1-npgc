@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 export const locationSchema = new mongoose.Schema(
   {
+    address: { type: String, required: false},
     latitude: {
       type: Number,
       required: true,

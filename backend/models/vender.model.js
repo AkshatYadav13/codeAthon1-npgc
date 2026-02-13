@@ -12,7 +12,6 @@ const venderSchema = new mongoose.Schema(
 
     orders: [{ type: mongoose.Schema.Types.ObjectId, ref: "Order" }],
     
-    avgRating: { type: Number, default: 0 },
     
     ratingTotal: { type: Number, default: 0 },
     ratingCount: { type: Number, default: 0 },
@@ -21,6 +20,7 @@ const venderSchema = new mongoose.Schema(
       enum: ["Vegetables", "Fruits", "Both"],
       default: "Vegetables",
     },
+    avgRating: { type: Number, default: 0 },
     orderPlaced: { type: Number, default: 0 },
     orderServed: { type: Number, default: 0 },
     totalDishes: { type: Number, default: 0 },

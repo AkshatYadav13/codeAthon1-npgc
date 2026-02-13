@@ -15,7 +15,7 @@ const JWT_EXPIRES_IN = "7d"; // token expires in 7 days
 
 /* ================== REGISTER USER ================== */
 export const signup = asyncHandler(async (req, res) => {
-    const { fullName, email, password, contact, role, location } = req.body;
+    const { fullName, email, password, contact, role } = req.body;
 
     // Check if user exists
     const existingUser = await User.findOne({ $or: [{ email }, { contact }] });
@@ -33,7 +33,6 @@ export const signup = asyncHandler(async (req, res) => {
       password: hashedPassword,
       contact,
       role,
-      location,
     });
 
     getJwtToken(res, user._id);
@@ -171,4 +170,58 @@ export const changePassword = asyncHandler(async (req, res) => {
     await user.save();
 
     res.json({ message: "Password changed successfully" });
+});
+
+
+export const setUserLocation = asyncHandler(async (req, res) => {
+  const userId = req.user._id; // from isAuthenticated middleware
+  const { latitude, longitude, address } = req.body;
+
+  // Validate required fields
+  if (latitude === undefined || longitude === undefined) {
+    return res.status(400).json({
+      success: false,
+      message: "Latitude and Longitude are required",
+    });
+  }
+
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+
+  if (isNaN(lat) || isNaN(lng)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid latitude or longitude",
+    });
+  }
+
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    return res.status(400).json({
+      success: false,
+      message: "Coordinates out of range",
+    });
+  }
+
+  // Update location
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    {
+      location: {
+        address: address || undefined, // optional
+        latitude: lat,
+        longitude: lng,
+        geo: {
+          type: "Point",
+          coordinates: [lng, lat], // IMPORTANT → [longitude, latitude]
+        },
+      },
+    },
+    { new: true }
+  ).select("-password");
+
+  res.status(200).json({
+    success: true,
+    message: "Location updated successfully",
+    location: updatedUser.location,
+  });
 });
