@@ -225,3 +225,4 @@ export const setUserLocation = asyncHandler(async (req, res) => {
     location: updatedUser.location,
   });
 });
+

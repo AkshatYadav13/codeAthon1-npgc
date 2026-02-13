@@ -1,6 +1,13 @@
-import React from 'react'
+import { useUserLocation } from '../../hook/locationHook.js';
+import React, { useEffect } from 'react'
 
 const Home = () => {
+  const { getUserLocation } = useUserLocation();
+
+  useEffect(() => {
+    getUserLocation();
+  }, []);
+
   return (
     <div>Home</div>
   )

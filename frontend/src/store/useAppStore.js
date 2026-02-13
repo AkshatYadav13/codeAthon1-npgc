@@ -13,6 +13,20 @@ export const useAppStore = create()(
         login: false,
         signUp: false,
       },
+      userLocation:{
+        address:"",
+        lat:null,
+        lng:null
+      },
+
+    setLocation: (address, lat, lng) =>
+      set(() => ({
+        userLocation: {
+          address,
+          lat,
+          lng
+        }
+      })),
 
       setTheme: (theme) => {
         const root = window.document.documentElement;
@@ -31,6 +45,7 @@ export const useAppStore = create()(
           set({ theme: storedTheme });
         }
       },
+
 
       resetStore: () => set({ user: null }),
 
