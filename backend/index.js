@@ -3,10 +3,13 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./utils/db.js";
-
+import dns from "node:dns/promises";
 
 dotenv.config();
+dns.setServers(["1.1.1.1"]);
+
 connectDB();
+
 
 const app = express();
 const PORT = process.env.PORT || 5000;
